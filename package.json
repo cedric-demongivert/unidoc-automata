@@ -1,0 +1,27 @@
+{
+  "name": "@cedric-demongivert/unidoc-automata",
+  "version": "0.0.0",
+  "description": "Code generation for executing unidoc event stream.",
+  "main": "index.js",
+  "types": "./types/index.d.ts",
+  "repository": "https://github.com/cedric-demongivert/unidoc-automata.git",
+  "author": "Cédric DEMONGIVERT <cedric.demongivert@gmail.com>",
+  "private": false,
+  "scripts": {
+    "test": "jest --coverage",
+    "build": "typedoc && npx mix",
+    "preversion": "yarn install",
+    "version": "yarn build && yarn test && git add --all",
+    "postversion": "git push && git push --tags",
+    "push": "yarn build && yarn publish ./distribution --access public",
+    "patch": "yarn version --patch && yarn run push",
+    "minor": "yarn version --minor && yarn run push",
+    "major": "yarn version --major && yarn run push"
+  },
+  "devDependencies": {
+ 
+  },
+  "dependencies": {
+   
+  }
+}
