@@ -19,9 +19,23 @@
     "major": "yarn version --major && yarn run push"
   },
   "devDependencies": {
- 
+    "@types/jest": "^28.1.0",
+    "jest": "^28.1.0",
+    "ts-jest": "^28.0.3",
+    "typescript": "^4.7.2"
   },
   "dependencies": {
-   
+    "@babel/core": "^7.18.2",
+    "@babel/generator": "^7.18.2",
+    "@babel/plugin-proposal-decorators": "^7.18.2",
+    "@babel/plugin-syntax-typescript": "^7.17.12",
+    "@babel/plugin-transform-typescript": "^7.18.4",
+    "@babel/preset-env": "^7.18.2",
+    "@babel/preset-typescript": "^7.17.12",
+    "@babel/template": "^7.16.7",
+    "@babel/traverse": "^7.18.2",
+    "@babel/types": "^7.18.4",
+    "@cedric-demongivert/gl-tool-collection": "^0.29.5",
+    "@cedric-demongivert/unidoc": "^0.5.0"
   }
 }
