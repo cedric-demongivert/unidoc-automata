@@ -1,7 +1,6 @@
 import * as types from '@babel/types'
 
-import { NoneIdentifier } from './NoneIdentifier'
-import { EmptyStringLiteral } from './EmptyStringLiteral'
+import { BabelEmpty } from './BabelEmpty'
 import { Duplicator } from '@cedric-demongivert/gl-tool-collection'
 
 /**
@@ -32,8 +31,8 @@ export class UnidocAutomataClass {
    * 
    */
   public constructor() {
-    this.identifier = NoneIdentifier.INSTANCE
-    this.source = EmptyStringLiteral.INSTANCE
+    this.identifier = BabelEmpty.IDENTIFIER
+    this.source = BabelEmpty.STRING_LITERAL
     this.default = false
   }
 
@@ -65,8 +64,8 @@ export class UnidocAutomataClass {
    * 
    */
   public clear(): this {
-    this.identifier = NoneIdentifier.INSTANCE
-    this.source = EmptyStringLiteral.INSTANCE
+    this.identifier = BabelEmpty.IDENTIFIER
+    this.source = BabelEmpty.STRING_LITERAL
     this.default = false
     return this
   }

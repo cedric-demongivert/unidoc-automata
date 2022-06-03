@@ -4,7 +4,7 @@ import { UnidocAutomata } from './UnidocAutomata'
 /**
  * 
  */
-@UnidocAutomata.generate(UTF32String)
+@UnidocAutomata.generate()
 export class UnidocUTF32TextBuilder {
   /**
    * 

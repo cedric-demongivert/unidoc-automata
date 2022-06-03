@@ -20,8 +20,8 @@ export namespace UnidocAutomataAnnotationExtractor {
   /**
    * 
    */
-  export function extract(node: types.Decorator, scope: Scope): UnidocAutomataAnnotation | undefined {
-    const expression: types.Expression = node.expression
+  export function extract(decorator: NodePath<types.Decorator>): UnidocAutomataAnnotation | undefined {
+    const expression: types.Expression = decorator.node.expression
 
     if (!types.isCallExpression(expression)) return undefined
 
@@ -34,7 +34,7 @@ export namespace UnidocAutomataAnnotationExtractor {
 
     if (!types.isIdentifier(object)) return undefined
 
-    const objectBinding: Binding | undefined = scope.getBinding(object.name)
+    const objectBinding: Binding | undefined = decorator.scope.getBinding(object.name)
 
     if (objectBinding == null) return undefined
 

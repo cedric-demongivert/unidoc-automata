@@ -30,6 +30,7 @@ export namespace UnidocAutomataGenerator {
     const statements: Array<types.Statement> = []
 
     statements.push(generateImportDeclaration(schema.base))
+    statements.push(generateImportDeclaration(schema.builder))
 
     return statements
   }
@@ -48,10 +49,10 @@ export namespace UnidocAutomataGenerator {
   /**
    * 
    */
-  export function generate(schema: UnidocAutomataSchema): types.Node {
+  export function generate(schema: UnidocAutomataSchema): types.File {
     const statements: Array<types.Statement> = []
 
-    statements.concat(generateImports(schema))
+    statements.push(...generateImports(schema))
     statements.push(generateClass(schema))
 
     return types.file(types.program(statements))
