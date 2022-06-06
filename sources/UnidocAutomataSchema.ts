@@ -1,12 +1,21 @@
-import * as types from "@babel/types"
+import * as babel from '@babel/core'
 
-import { Pack } from "@cedric-demongivert/gl-tool-collection"
+import { Sequence } from '@cedric-demongivert/gl-tool-collection'
+import { equals } from '@cedric-demongivert/gl-tool-utils'
 
-import { UnidocAutomataEventHook } from './UnidocAutomataEventHook'
-import { UnidocAutomataStreamHook } from './UnidocAutomataStreamHook'
-import { UnidocAutomataClass } from './UnidocAutomataClass'
-import { UnidocAutomataScope } from "./UnidocAutomataScope"
-import { UnidocAutomataEventHookType } from "./UnidocAutomataEventHookType"
+import { UnidocAutomataSchemaBuilder } from './UnidocAutomataSchemaBuilder'
+
+import { EventHookSchema } from './EventHookSchema'
+import { StreamHookSchema } from './StreamHookSchema'
+import { ResultProviderSchema } from './ResultProviderSchema'
+import { TypeSchema } from './TypeSchema'
+import { UnidocScope } from './UnidocScope'
+import { EventHookType } from './EventHookType'
+import { StreamHookType } from './StreamHookType'
+import { NamedTypeSchema } from './NamedTypeSchema'
+import { StaticPath } from './StaticPath'
+import { assertNotNull } from './assertNotNull'
+
 
 /**
  * 
@@ -15,47 +24,47 @@ export class UnidocAutomataSchema {
   /**
    * 
    */
-  public readonly base: UnidocAutomataClass
+  public readonly automata: TypeSchema
 
   /**
    * 
    */
-  public readonly builder: UnidocAutomataClass
+  public readonly builder: TypeSchema
 
   /**
    * 
    */
-  public readonly eventHooks: Pack<UnidocAutomataEventHook>
+  public readonly eventHooks: Sequence<EventHookSchema | null>
 
   /**
    * 
    */
-  public readonly streamHooks: Pack<UnidocAutomataStreamHook>
+  public readonly streamHooks: Sequence<StreamHookSchema | null>
 
   /**
    * 
    */
-  public readonly resultProvider: UnidocAutomataEventHook
+  public readonly resultProvider: ResultProviderSchema | undefined
 
   /**
    * 
    */
-  public constructor() {
-    this.base = new UnidocAutomataClass()
-    this.builder = new UnidocAutomataClass()
-    this.eventHooks = Pack.instance(UnidocAutomataEventHook.ALLOCATOR, 0)
-    this.streamHooks = Pack.instance(UnidocAutomataStreamHook.ALLOCATOR, 0)
-    this.resultProvider = new UnidocAutomataEventHook()
+  public constructor(builder: UnidocAutomataSchemaBuilder) {
+    this.automata = builder.automata || UnidocAutomataSchema.DEFAULT_AUTOMATA
+    this.builder = assertNotNull(builder.builder)
+    this.eventHooks = builder.eventHooks.clone().view()
+    this.streamHooks = builder.streamHooks.clone().view()
+    this.resultProvider = builder.resultProvider
   }
 
   /**
    * 
    */
-  public getListenedEvents(scope: UnidocAutomataScope, result: Set<UnidocAutomataEventHookType> = new Set()): Set<UnidocAutomataEventHookType> {
+  public getListenedEvents(scope: UnidocScope, result: Set<EventHookType> = new Set()): Set<EventHookType> {
     result.clear()
 
     for (const hook of this.eventHooks) {
-      if (hook.scope === scope) {
+      if (hook && hook.scope === scope) {
         result.add(hook.type)
       }
     }
@@ -64,21 +73,45 @@ export class UnidocAutomataSchema {
   }
 
   /**
-   * @see Clearable.prototype.clear
+   * 
    */
-  public clear(): void {
-    this.base.clear()
-    this.eventHooks.clear()
-    this.streamHooks.clear()
-    this.builder.clear()
-    this.resultProvider.clear()
+  public hasStreamHookOfType(type: StreamHookType): boolean {
+    for (const hook of this.streamHooks) {
+      if (hook && hook.type === type) return true
+    }
+
+    return false
   }
 
   /**
-   * @see Clonable.prototype.clone
+   * 
    */
-  public clone(): UnidocAutomataSchema {
-    return new UnidocAutomataSchema().copy(this)
+  public getStreamHooksOfType(type: StreamHookType): Array<StreamHookSchema> {
+    return [...this.streamHooksOfType(type)]
+  }
+
+  /**
+   * 
+   */
+  public * streamHooksOfType(type: StreamHookType): IterableIterator<StreamHookSchema> {
+    for (const hook of this.streamHooks) {
+      if (hook && hook.type === type) {
+        yield hook
+      }
+    }
+  }
+
+  /**
+   * 
+   */
+  public needsDepth(): boolean {
+    for (const hook of this.eventHooks) {
+      if (hook && hook.scope != UnidocScope.EVERYTHING) {
+        return true
+      }
+    }
+
+    return false
   }
 
   /**
@@ -90,28 +123,15 @@ export class UnidocAutomataSchema {
 
     if (other instanceof UnidocAutomataSchema) {
       return (
-        other.base.equals(this.base) &&
+        other.automata.equals(this.automata) &&
         other.eventHooks.equals(this.eventHooks) &&
         other.streamHooks.equals(this.streamHooks) &&
         other.builder.equals(this.builder) &&
-        other.resultProvider.equals(this.resultProvider)
+        equals(other.resultProvider, this.resultProvider)
       )
     }
 
     return false
-  }
-
-  /**
-   * @see Assignable.prototype.copy
-   */
-  public copy(toCopy: UnidocAutomataSchema): this {
-    this.base.copy(toCopy.base)
-    this.eventHooks.copy(toCopy.eventHooks)
-    this.streamHooks.copy(toCopy.streamHooks)
-    this.builder.copy(toCopy.builder)
-    this.resultProvider.copy(toCopy.resultProvider)
-
-    return this
   }
 }
 
@@ -122,16 +142,22 @@ export namespace UnidocAutomataSchema {
   /**
    * 
    */
-  export const DEFAULT_BASE_CLASS: UnidocAutomataClass = (
-    new UnidocAutomataClass()
-      .setIdentifier(types.identifier('UnidocAutomata'))
-      .setSource(types.stringLiteral('@cedric-demongivert/unidoc-automata'))
+  const UNIDOC_AUTOMATA: babel.types.Identifier = babel.types.identifier('UnidocAutomata')
+
+  /**
+   * 
+   */
+  export const DEFAULT_AUTOMATA: TypeSchema = NamedTypeSchema.create(
+    undefined,
+    new StaticPath('@cedric-demongivert/unidoc-automata'),
+    UNIDOC_AUTOMATA,
+    UNIDOC_AUTOMATA
   )
 
   /**
    * 
    */
-  export function create(): UnidocAutomataSchema {
-    return new UnidocAutomataSchema()
+  export function create(builder: UnidocAutomataSchemaBuilder): UnidocAutomataSchema {
+    return new UnidocAutomataSchema(builder)
   }
 }

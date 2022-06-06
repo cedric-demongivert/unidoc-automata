@@ -1,16 +1,16 @@
 /**
  * 
  */
-export type UnidocAutomataStreamHookType = (
-  UnidocAutomataStreamHookType.START |
-  UnidocAutomataStreamHookType.SUCCESS |
-  UnidocAutomataStreamHookType.FAILURE
+export type StreamHookType = (
+  StreamHookType.START |
+  StreamHookType.SUCCESS |
+  StreamHookType.FAILURE
 )
 
 /**
  * 
  */
-export namespace UnidocAutomataStreamHookType {
+export namespace StreamHookType {
   /**
    * 
    */
@@ -44,12 +44,12 @@ export namespace UnidocAutomataStreamHookType {
   /**
    * 
    */
-  export const DEFAULT: UnidocAutomataStreamHookType = START
+  export const DEFAULT: StreamHookType = START
 
   /**
    * 
    */
-  export const ALL: UnidocAutomataStreamHookType[] = [
+  export const ALL: StreamHookType[] = [
     START,
     SUCCESS,
     FAILURE
@@ -58,7 +58,7 @@ export namespace UnidocAutomataStreamHookType {
   /**
    * 
    */
-  export function toString(type: UnidocAutomataStreamHookType): string | undefined {
+  export function toString(type: StreamHookType): string | undefined {
     /**
      * 
      */
@@ -73,7 +73,7 @@ export namespace UnidocAutomataStreamHookType {
   /**
    * 
    */
-  export function toDebugString(type: UnidocAutomataStreamHookType): string {
-    return `UnidocAutomataStreamHookType #${type} (${toString(type) || 'undefined'})`
+  export function toDebugString(type: StreamHookType): string {
+    return `StreamHookType #${type} (${toString(type) || 'undefined'})`
   }
 }

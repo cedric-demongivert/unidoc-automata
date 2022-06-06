@@ -1,11 +1,13 @@
 import * as types from "@babel/types"
 
 import { Empty } from '@cedric-demongivert/gl-tool-utils'
+import { MethodArgument } from "./MethodArgument"
+import { MethodParameter } from "./MethodParameter"
 
 /**
  * 
  */
-export namespace BabelEmpty {
+export namespace EmptyNode {
   /**
    * 
    */
@@ -81,13 +83,37 @@ export namespace BabelEmpty {
   /**
    * 
    */
-  export const PARAMETERS: Array<types.Identifier | types.Pattern | types.RestElement | types.TSParameterProperty> = []
+  export const PARAMETERS: Array<MethodParameter> = []
 
   /**
    * 
    */
-  export function parameters(): Array<types.Identifier | types.Pattern | types.RestElement | types.TSParameterProperty> {
+  export function parameters(): Array<MethodParameter> {
     return PARAMETERS
+  }
+
+  /**
+   * 
+   */
+  export const ARGUMENTS: Array<MethodArgument> = []
+
+  /**
+   * 
+   */
+  export function args(): Array<MethodArgument> {
+    return ARGUMENTS
+  }
+
+  /**
+   * 
+   */
+  export const DECORATORS: Array<types.Decorator> = []
+
+  /**
+   * 
+   */
+  export function decorators(): Array<types.Decorator> {
+    return DECORATORS
   }
 
   /**

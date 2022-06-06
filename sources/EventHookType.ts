@@ -1,21 +1,21 @@
 /**
  * 
  */
-export type UnidocAutomataEventHookType = (
-  UnidocAutomataEventHookType.EVENTS |
-  UnidocAutomataEventHookType.WHITESPACES |
-  UnidocAutomataEventHookType.WORDS |
-  UnidocAutomataEventHookType.TAG_STARTS |
-  UnidocAutomataEventHookType.TAG_ENDS |
-  UnidocAutomataEventHookType.START |
-  UnidocAutomataEventHookType.SUCCESS |
-  UnidocAutomataEventHookType.FAILURE
+export type EventHookType = (
+  EventHookType.EVENTS |
+  EventHookType.WHITESPACES |
+  EventHookType.WORDS |
+  EventHookType.TAG_STARTS |
+  EventHookType.TAG_ENDS |
+  EventHookType.START |
+  EventHookType.SUCCESS |
+  EventHookType.FAILURE
 )
 
 /**
  * 
  */
-export namespace UnidocAutomataEventHookType {
+export namespace EventHookType {
   /**
    * 
    */
@@ -99,12 +99,12 @@ export namespace UnidocAutomataEventHookType {
   /**
    * 
    */
-  export const DEFAULT: UnidocAutomataEventHookType = EVENTS
+  export const DEFAULT: EventHookType = EVENTS
 
   /**
    * 
    */
-  export const ALL: UnidocAutomataEventHookType[] = [
+  export const ALL: EventHookType[] = [
     EVENTS,
     WHITESPACES,
     WORDS,
@@ -118,7 +118,7 @@ export namespace UnidocAutomataEventHookType {
   /**
    * 
    */
-  export function toString(type: UnidocAutomataEventHookType): string | undefined {
+  export function toString(type: EventHookType): string | undefined {
     /**
      * 
      */
@@ -138,7 +138,7 @@ export namespace UnidocAutomataEventHookType {
   /**
    * 
    */
-  export function toDebugString(type: UnidocAutomataEventHookType): string {
-    return `UnidocAutomataEventHookType #${type} (${toString(type) || 'undefined'})`
+  export function toDebugString(type: EventHookType): string {
+    return `EventHookType #${type} (${toString(type) || 'undefined'})`
   }
 }

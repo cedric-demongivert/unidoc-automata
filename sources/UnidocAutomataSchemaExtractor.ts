@@ -1,20 +1,21 @@
-import { Binding, NodePath } from '@babel/traverse'
-import * as types from '@babel/types'
-import { UnidocPath } from '@cedric-demongivert/unidoc'
+import babel from '@babel/core'
 
-import { UnidocAutomataAnnotation } from './UnidocAutomataAnnotation'
-import { UnidocAutomataAnnotationExtractor } from './UnidocAutomataAnnotationExtractor'
-import { UnidocAutomataClass } from './UnidocAutomataClass'
-import { UnidocAutomataEventHook } from './UnidocAutomataEventHook'
-import { UnidocAutomataEventHookType } from './UnidocAutomataEventHookType'
-import { UnidocAutomataExtractionContext } from './UnidocAutomataExtractionContext'
-import { UnidocAutomataListener } from './UnidocAutomataListener'
+import { SchemaAnnotationType } from './SchemaAnnotationType'
+import { SchemaAnnotationExtractor } from './SchemaAnnotationExtractor'
+import { DefaultTypeSchema } from './DefaultTypeSchema'
+import { NamedTypeSchema } from './NamedTypeSchema'
+import { EventHookSchema } from './EventHookSchema'
+import { EventHookType } from './EventHookType'
+import { HookSchema } from './HookSchema'
 
 import { UnidocAutomataSchema } from './UnidocAutomataSchema'
-import { UnidocAutomataScope } from './UnidocAutomataScope'
-import { UnidocAutomataSource } from './UnidocAutomataSource'
-import { UnidocAutomataStreamHook } from './UnidocAutomataStreamHook'
-import { UnidocAutomataStreamHookType } from './UnidocAutomataStreamHookType'
+import { UnidocScope } from './UnidocScope'
+import { SourceCode } from './SourceCode'
+import { SourceCodeElement } from './SourceCodeElement'
+import { StreamHookSchema } from './StreamHookSchema'
+import { StreamHookType } from './StreamHookType'
+import { ResultProviderSchema } from './ResultProviderSchema'
+import { UnidocAutomataSchemaBuilder } from './UnidocAutomataSchemaBuilder'
 
 /**
  * 
@@ -28,20 +29,19 @@ export namespace UnidocAutomataSchemaExtractor {
   /**
    * 
    */
-  export function extractFromSource(source: UnidocAutomataSource): Array<UnidocAutomataSchema> {
-    const statements: Array<NodePath<types.Statement>> = source.program.get('body')
+  export function extractFromSource(source: SourceCode): Array<UnidocAutomataSchema> {
+    const statements: Array<babel.NodePath<babel.types.Statement>> = source.program.get('body')
     const result: Array<UnidocAutomataSchema> = []
 
     for (let index = 0; index < statements.length; ++index) {
-      const statement: NodePath<types.Statement> = statements[index]
+      const statement: babel.NodePath<babel.types.Statement> = statements[index]
 
       if (!statement.isExportDeclaration()) continue
 
-      const schema: UnidocAutomataSchema | undefined = extractFromExportDeclaration(statement)
+      const schema: UnidocAutomataSchema | undefined = extractFromExportDeclaration(source.element(statement))
 
       if (schema == null) continue
 
-      schema.builder.source = source.path
       result.push(schema)
     }
 
@@ -51,13 +51,70 @@ export namespace UnidocAutomataSchemaExtractor {
   /**
    * 
    */
-  function extractFromExportDeclaration(exportationPath: NodePath<types.ExportDeclaration>): UnidocAutomataSchema | undefined {
-    if (exportationPath.isExportDefaultDeclaration()) {
-      return extractFromExportDefaultDeclaration(exportationPath)
+  function extractFromExportDeclaration(element: SourceCodeElement<babel.types.ExportDeclaration>): UnidocAutomataSchema | undefined {
+    const declaration: babel.NodePath<babel.types.ExportDeclaration> = element.path
+
+    if (declaration.isExportDefaultDeclaration()) {
+      const expression = declaration.get('declaration')
+
+      if (expression.isClassDeclaration()) {
+        const builder: UnidocAutomataSchemaBuilder | undefined = extractFromClassDeclaration(element.source.element(expression))
+
+        if (builder == null) return undefined
+
+        builder.builder = new DefaultTypeSchema(
+          element,
+          element.source.path,
+          expression.node.id
+        )
+
+        return builder.build()
+      }
+
+      if (expression.isIdentifier()) {
+        const binding = expression.scope.getBinding(expression.node.name)
+
+        if (binding == null) return undefined
+
+        const bindingPath = binding.path
+
+        if (!bindingPath.isClassDeclaration()) return undefined
+
+        const builder: UnidocAutomataSchemaBuilder | undefined = extractFromClassDeclaration(element.source.element(bindingPath))
+
+        if (builder == null) return undefined
+
+        builder.builder = new DefaultTypeSchema(
+          element,
+          element.source.path,
+          bindingPath.node.id
+        )
+
+        return builder.build()
+      }
+
+      return undefined
     }
 
-    if (exportationPath.isExportNamedDeclaration()) {
-      return extractFromExportNamedDeclaration(exportationPath)
+    if (declaration.isExportNamedDeclaration()) {
+      const definition = declaration.get('declaration')
+
+      if (definition && definition.isClassDeclaration()) {
+        const builder: UnidocAutomataSchemaBuilder | undefined = extractFromClassDeclaration(element.source.element(definition))
+
+        if (builder == null) return undefined
+
+        builder.builder = new NamedTypeSchema(
+          element,
+          element.source.path,
+          definition.node.id,
+          definition.node.id
+        )
+
+        return builder.build()
+      }
+
+      return undefined
     }
 
     return undefined
@@ -66,52 +123,8 @@ export namespace UnidocAutomataSchemaExtractor {
   /**
    * 
    */
-  function extractFromExportNamedDeclaration(exportationPath: NodePath<types.ExportNamedDeclaration>): UnidocAutomataSchema | undefined {
-    const declaration = exportationPath.get('declaration')
-
-    if (declaration.isClassDeclaration()) {
-      const result: UnidocAutomataSchema | undefined = extractFromClassDeclaration(declaration)
-
-      if (result == null) return undefined
-
-      result.builder.setIdentifier(declaration.node.id)
-
-      return result
-    }
-
-    return undefined
-  }
-
-  /**
-   * 
-   */
-  function extractFromExportDefaultDeclaration(exportationPath: NodePath<types.ExportDefaultDeclaration>): UnidocAutomataSchema | undefined {
-    const declaration = exportationPath.get('declaration')
-
-    if (declaration.isClassDeclaration()) {
-      const result: UnidocAutomataSchema | undefined = extractFromClassDeclaration(declaration)
-
-      if (result == null) return undefined
-
-      result.builder
-        .setDefault(true)
-        .setIdentifier(declaration.node.id)
-
-      return result
-    }
-
-    if (declaration.isObjectExpression()) {
-
-    }
-
-    return undefined
-  }
-
-  /**
-   * 
-   */
-  function extractFromClassDeclaration(classPath: NodePath<types.ClassDeclaration>): UnidocAutomataSchema | undefined {
-    const decorators = classPath.get('decorators')
+  function extractFromClassDeclaration(element: SourceCodeElement<babel.types.ClassDeclaration>): UnidocAutomataSchemaBuilder | undefined {
+    const decorators = element.path.get('decorators')
 
     if (!(decorators instanceof Array)) return undefined
     if (decorators.length < 1) return undefined
@@ -119,15 +132,15 @@ export namespace UnidocAutomataSchemaExtractor {
     let index: number = 0
 
     while (index < decorators.length) {
-      const decorator: NodePath<types.Decorator> = decorators[index]
-      const annotation: UnidocAutomataAnnotation | undefined = UnidocAutomataAnnotationExtractor.extract(decorator)
+      const decorator: babel.NodePath<babel.types.Decorator> = decorators[index]
+      const annotation: SchemaAnnotationType | undefined = SchemaAnnotationExtractor.extract(decorator)
 
-      if (annotation === UnidocAutomataAnnotation.GENERATE) {
-        const result: UnidocAutomataSchema = new UnidocAutomataSchema()
+      if (annotation === SchemaAnnotationType.GENERATE) {
+        const result: UnidocAutomataSchemaBuilder = new UnidocAutomataSchemaBuilder()
 
-        handleGenerateAnnotation(decorator, result)
-        handleClassAnnotations(classPath, result)
-        handleClassMethods(classPath, result)
+        handleGenerateAnnotation(element.source.element(decorator), result)
+        handleClassAnnotations(element, result)
+        handleClassMethods(element, result)
 
         return result
       } else {
@@ -141,46 +154,41 @@ export namespace UnidocAutomataSchemaExtractor {
   /**
    *  
    */
-  function handleGenerateAnnotation(decoratorPath: NodePath<types.Decorator>, output: UnidocAutomataSchema): void {
-    const typeBinding: Binding | undefined = UnidocAutomataAnnotationExtractor.extractTypeBinding(decoratorPath, 0)
+  function handleGenerateAnnotation(element: SourceCodeElement<babel.types.Decorator>, output: UnidocAutomataSchemaBuilder): void {
+    const binding = SchemaAnnotationExtractor.extractTypeBinding(element.path, 0)
 
-    if (typeBinding == null) {
-      output.base.copy(UnidocAutomataSchema.DEFAULT_BASE_CLASS)
-      decoratorPath.remove()
+    if (binding == null) {
+      element.path.remove()
       return
     }
 
-    const baseClass: UnidocAutomataClass | undefined = UnidocAutomataAnnotationExtractor.extractClass(typeBinding, output.base)
+    output.automata = SchemaAnnotationExtractor.extractTypeSchemaFromBinding(element, binding)
 
-    if (baseClass == null) {
-      throw decoratorPath.buildCodeFrameError('Unable to extract class information from the provided identifier.')
-    }
-
-    if (typeBinding.references === 1) {
-      const parent: NodePath<types.ImportDeclaration> = typeBinding.path.parentPath as NodePath<types.ImportDeclaration>
+    if (binding.references === 1) {
+      const parent: babel.NodePath<babel.types.ImportDeclaration> = binding.path.parentPath as babel.NodePath<babel.types.ImportDeclaration>
 
       if (parent.node.specifiers.length === 1) {
         parent.remove()
       } else {
-        typeBinding.path.remove()
+        binding.path.remove()
       }
     }
 
-    decoratorPath.remove()
+    element.path.remove()
   }
 
   /**
    *  
    */
-  function handleClassAnnotations(classPath: NodePath<types.ClassDeclaration>, output: UnidocAutomataSchema): void {
+  function handleClassAnnotations(element: SourceCodeElement<babel.types.ClassDeclaration>, output: UnidocAutomataSchemaBuilder): void {
 
   }
 
   /**
    *  
    */
-  function handleClassMethods(classDeclaration: NodePath<types.ClassDeclaration>, output: UnidocAutomataSchema): void {
-    const classBody = classDeclaration.get('body').get('body')
+  function handleClassMethods(element: SourceCodeElement<babel.types.ClassDeclaration>, output: UnidocAutomataSchemaBuilder): void {
+    const classBody = element.path.get('body').get('body')
 
     for (const method of classBody) {
       if (!method.isClassMethod()) continue
@@ -191,12 +199,14 @@ export namespace UnidocAutomataSchemaExtractor {
 
       if (!(decorators instanceof Array)) continue
 
+      const methodElement = element.source.element(method)
+
       for (const decorator of decorators) {
-        const annotation: UnidocAutomataAnnotation | undefined = UnidocAutomataAnnotationExtractor.extract(decorator)
+        const annotation: SchemaAnnotationType | undefined = SchemaAnnotationExtractor.extract(decorator)
 
         if (annotation == null) continue
 
-        handleAnnotatedMethod(method, decorator, annotation, output)
+        handleAnnotatedMethod(methodElement, element.source.element(decorator), annotation, output)
         decorator.remove()
       }
     }
@@ -205,44 +215,47 @@ export namespace UnidocAutomataSchemaExtractor {
   /**
    * 
    */
-  function handleAnnotatedMethod(method: NodePath<types.ClassMethod>, decorator: NodePath<types.Decorator>, annotation: UnidocAutomataAnnotation, output: UnidocAutomataSchema): void {
+  function handleAnnotatedMethod(method: SourceCodeElement<babel.types.ClassMethod>, decorator: SourceCodeElement<babel.types.Decorator>, annotation: SchemaAnnotationType, output: UnidocAutomataSchemaBuilder): void {
     switch (annotation) {
-      case UnidocAutomataAnnotation.EVENTS:
-        handleEventHookAnnotation(method, decorator, UnidocAutomataEventHookType.EVENTS, output)
+      case SchemaAnnotationType.EVENTS:
+        handleEventHookAnnotation(method, decorator, EventHookType.EVENTS, output)
         break
-      case UnidocAutomataAnnotation.WHITESPACES:
-        handleEventHookAnnotation(method, decorator, UnidocAutomataEventHookType.WHITESPACES, output)
+      case SchemaAnnotationType.WHITESPACES:
+        handleEventHookAnnotation(method, decorator, EventHookType.WHITESPACES, output)
         break
-      case UnidocAutomataAnnotation.WORDS:
-        handleEventHookAnnotation(method, decorator, UnidocAutomataEventHookType.WORDS, output)
+      case SchemaAnnotationType.WORDS:
+        handleEventHookAnnotation(method, decorator, EventHookType.WORDS, output)
         break
-      case UnidocAutomataAnnotation.TAG_STARTS:
-        handleEventHookAnnotation(method, decorator, UnidocAutomataEventHookType.TAG_STARTS, output)
+      case SchemaAnnotationType.TAG_STARTS:
+        handleEventHookAnnotation(method, decorator, EventHookType.TAG_STARTS, output)
         break
-      case UnidocAutomataAnnotation.TAG_ENDS:
-        handleEventHookAnnotation(method, decorator, UnidocAutomataEventHookType.TAG_ENDS, output)
+      case SchemaAnnotationType.TAG_ENDS:
+        handleEventHookAnnotation(method, decorator, EventHookType.TAG_ENDS, output)
         break
-      case UnidocAutomataAnnotation.START:
-        handleStreamHookAnnotation(method, decorator, UnidocAutomataStreamHookType.START, output)
+      case SchemaAnnotationType.START:
+        handleStreamHookAnnotation(method, decorator, StreamHookType.START, output)
         break
-      case UnidocAutomataAnnotation.SUCCESS:
-        handleStreamHookAnnotation(method, decorator, UnidocAutomataStreamHookType.SUCCESS, output)
+      case SchemaAnnotationType.SUCCESS:
+        handleStreamHookAnnotation(method, decorator, StreamHookType.SUCCESS, output)
         break
-      case UnidocAutomataAnnotation.FAILURE:
-        handleStreamHookAnnotation(method, decorator, UnidocAutomataStreamHookType.FAILURE, output)
+      case SchemaAnnotationType.FAILURE:
+        handleStreamHookAnnotation(method, decorator, StreamHookType.FAILURE, output)
         break
-      case UnidocAutomataAnnotation.GENERATE:
-        throw decorator.buildCodeFrameError('Trying to decorate a method with a class decorator.')
-      case UnidocAutomataAnnotation.RESULT:
-        /*if (schema.resultProvider == null) {
-          schema.resultProvider = key
+      case SchemaAnnotationType.GENERATE:
+        throw decorator.path.buildCodeFrameError('Trying to decorate a method with a class decorator.')
+      case SchemaAnnotationType.RESULT:
+        if (output.resultProvider == null) {
+          output.resultProvider = ResultProviderSchema.create(
+            method.node.returnType!,
+            HookSchema.fromClassMethod(method, decorator)
+          )
         } else {
-          throw decorator.buildCodeFrameError('Unable to handle this result annotation as the class already got one.')
-        }*/
+          throw decorator.path.buildCodeFrameError('Unable to handle this result annotation as the class already got one.')
+        }
         break
       default:
-        throw decorator.buildCodeFrameError(
-          `Unable to handle decorator of type ${UnidocAutomataAnnotation.toDebugString(annotation)} as ` +
+        throw decorator.path.buildCodeFrameError(
+          `Unable to handle decorator of type ${SchemaAnnotationType.toDebugString(annotation)} as ` +
           'no procedure was defined for that into this extractor.'
         )
     }
@@ -251,35 +264,33 @@ export namespace UnidocAutomataSchemaExtractor {
   /**
    * 
    */
-  function handleStreamHookAnnotation(method: NodePath<types.ClassMethod>, decorator: NodePath<types.Decorator>, type: UnidocAutomataStreamHookType, output: UnidocAutomataSchema): void {
-    output.streamHooks.push(UnidocAutomataStreamHook.DEFAULT)
-
-    output.streamHooks.last
-      .setListener(new UnidocAutomataListener(method.node))
-      .setType(type)
+  function handleStreamHookAnnotation(method: SourceCodeElement<babel.types.ClassMethod>, decorator: SourceCodeElement<babel.types.Decorator>, type: StreamHookType, output: UnidocAutomataSchemaBuilder): void {
+    output.streamHooks.push(
+      StreamHookSchema.create(
+        type,
+        HookSchema.fromClassMethod(method, decorator)
+      )
+    )
   }
 
   /**
    * 
    */
-  function handleEventHookAnnotation(method: NodePath<types.ClassMethod>, decorator: NodePath<types.Decorator>, type: UnidocAutomataEventHookType, output: UnidocAutomataSchema): void {
-    let scope: UnidocAutomataScope = UnidocAutomataScope.DEFAULT
+  function handleEventHookAnnotation(method: SourceCodeElement<babel.types.ClassMethod>, decorator: SourceCodeElement<babel.types.Decorator>, type: EventHookType, output: UnidocAutomataSchemaBuilder): void {
+    let scope: UnidocScope = UnidocScope.DEFAULT
 
-    const scopeValue: string | undefined = UnidocAutomataAnnotationExtractor.extractString(decorator, 0)
+    const scopeValue: string | undefined = SchemaAnnotationExtractor.extractString(decorator.path, 0)
 
     if (scopeValue != undefined) {
-      const candidate: UnidocAutomataScope | undefined = UnidocAutomataScope.fromName(scopeValue)
+      const candidate: UnidocScope | undefined = UnidocScope.fromName(scopeValue)
 
       if (candidate == null) {
-        throw decorator.buildCodeFrameError(`Illegal parameter : "${scopeValue}" is not a valid scope type.`)
+        throw decorator.path.buildCodeFrameError(`Illegal parameter : "${scopeValue}" is not a valid scope type.`)
       }
+
+      scope = candidate
     }
 
-    output.eventHooks.push(UnidocAutomataEventHook.DEFAULT)
-
-    output.eventHooks.last
-      .setListener(new UnidocAutomataListener(method.node))
-      .setType(type)
-      .setScope(scope)
+    output.eventHooks.push(EventHookSchema.create(type, HookSchema.fromClassMethod(method, decorator), scope))
   }
 }

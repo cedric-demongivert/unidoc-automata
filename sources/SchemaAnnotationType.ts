@@ -1,23 +1,23 @@
 /**
  * 
  */
-export type UnidocAutomataAnnotation = (
-  UnidocAutomataAnnotation.EVENTS |
-  UnidocAutomataAnnotation.WHITESPACES |
-  UnidocAutomataAnnotation.WORDS |
-  UnidocAutomataAnnotation.TAG_STARTS |
-  UnidocAutomataAnnotation.TAG_ENDS |
-  UnidocAutomataAnnotation.START |
-  UnidocAutomataAnnotation.SUCCESS |
-  UnidocAutomataAnnotation.FAILURE |
-  UnidocAutomataAnnotation.GENERATE |
-  UnidocAutomataAnnotation.RESULT
+export type SchemaAnnotationType = (
+  SchemaAnnotationType.EVENTS |
+  SchemaAnnotationType.WHITESPACES |
+  SchemaAnnotationType.WORDS |
+  SchemaAnnotationType.TAG_STARTS |
+  SchemaAnnotationType.TAG_ENDS |
+  SchemaAnnotationType.START |
+  SchemaAnnotationType.SUCCESS |
+  SchemaAnnotationType.FAILURE |
+  SchemaAnnotationType.GENERATE |
+  SchemaAnnotationType.RESULT
 )
 
 /**
  * 
  */
-export namespace UnidocAutomataAnnotation {
+export namespace SchemaAnnotationType {
   /**
    * 
    */
@@ -121,12 +121,12 @@ export namespace UnidocAutomataAnnotation {
   /**
    * 
    */
-  export const DEFAULT: UnidocAutomataAnnotation = EVENTS
+  export const DEFAULT: SchemaAnnotationType = EVENTS
 
   /**
    * 
    */
-  export const ALL: UnidocAutomataAnnotation[] = [
+  export const ALL: SchemaAnnotationType[] = [
     EVENTS,
     WHITESPACES,
     WORDS,
@@ -142,7 +142,7 @@ export namespace UnidocAutomataAnnotation {
   /**
    * 
    */
-  export function toString(type: UnidocAutomataAnnotation): string | undefined {
+  export function toString(type: SchemaAnnotationType): string | undefined {
     /**
      * 
      */
@@ -164,7 +164,7 @@ export namespace UnidocAutomataAnnotation {
   /**
    * 
    */
-  export function fromName(name: string): UnidocAutomataAnnotation | undefined {
+  export function fromName(name: string): SchemaAnnotationType | undefined {
     switch (name) {
       case 'events': return EVENTS
       case 'whitespaces': return WHITESPACES
@@ -183,7 +183,7 @@ export namespace UnidocAutomataAnnotation {
   /**
    * 
    */
-  export function toDebugString(type: UnidocAutomataAnnotation): string {
-    return `UnidocAutomataAnnotation #${type} (${toString(type) || 'undefined'})`
+  export function toDebugString(type: SchemaAnnotationType): string {
+    return `SchemaAnnotationType #${type} (${toString(type) || 'undefined'})`
   }
 }

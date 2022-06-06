@@ -1,16 +1,16 @@
 /**
  * 
  */
-export type UnidocAutomataScope = (
-  UnidocAutomataScope.SHALLOW |
-  UnidocAutomataScope.DEEP |
-  UnidocAutomataScope.EVERYTHING
+export type UnidocScope = (
+  UnidocScope.SHALLOW |
+  UnidocScope.DEEP |
+  UnidocScope.EVERYTHING
 )
 
 /**
  * 
  */
-export namespace UnidocAutomataScope {
+export namespace UnidocScope {
   /**
    * 
    */
@@ -44,12 +44,12 @@ export namespace UnidocAutomataScope {
   /**
    * 
    */
-  export const DEFAULT: UnidocAutomataScope = SHALLOW
+  export const DEFAULT: UnidocScope = SHALLOW
 
   /**
    * 
    */
-  export const ALL: UnidocAutomataScope[] = [
+  export const ALL: UnidocScope[] = [
     SHALLOW,
     DEEP,
     EVERYTHING
@@ -58,7 +58,7 @@ export namespace UnidocAutomataScope {
   /**
    * 
    */
-  export function toString(type: UnidocAutomataScope): string | undefined {
+  export function toString(type: UnidocScope): string | undefined {
     /**
      * 
      */
@@ -73,7 +73,7 @@ export namespace UnidocAutomataScope {
   /**
    * 
    */
-  export function fromName(name: string): UnidocAutomataScope | undefined {
+  export function fromName(name: string): UnidocScope | undefined {
     switch (name) {
       case 'shallow': return SHALLOW
       case 'deep': return DEEP
@@ -85,7 +85,7 @@ export namespace UnidocAutomataScope {
   /**
    * 
    */
-  export function toDebugString(type: UnidocAutomataScope): string {
-    return `UnidocAutomataScope #${type} (${toString(type) || 'undefined'})`
+  export function toDebugString(type: UnidocScope): string {
+    return `UnidocScope #${type} (${toString(type) || 'undefined'})`
   }
 }

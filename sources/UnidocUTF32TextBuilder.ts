@@ -5,7 +5,7 @@ import { UnidocAutomata } from './UnidocAutomata'
  * 
  */
 @UnidocAutomata.generate()
-export class UnidocUTF32TextBuilder {
+class UnidocUTF32TextBuilder {
   /**
    * 
    */
@@ -105,3 +105,5 @@ export class UnidocUTF32TextBuilder {
     return this._result
   }
 }
+
+export default UnidocUTF32TextBuilder
